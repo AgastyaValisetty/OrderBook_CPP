@@ -266,6 +266,28 @@ public:
 
     }
 
+    Trades MatchOrder(OrderModify order) {
+        if (!orders_.contains(order.GetOrderId())) return { };
+
+        const auto& [existingOrder, _] = orders_.at(order.GetOrderId());
+        CancelOrder(order.GetOrderId());
+        return AddOrder(order.ToOrderPointer(existingOrder->GetOrderType()));
+    }
+    using OrderBookLevelInfos = std::vector<OrderBookLevelInfo>;
+    std::size_t Size() const { return orders_.size(); }
+    OrderBookLevelInfos  GetOrderInfos() const {
+        LevelInfos bidInfos, askInfos;
+        bidInfos.reserve(bids_.size());
+        askInfos.reserve(asks_.size());
+
+        auto CreateLevelInfos = [](Price price, const OrderPointers& orders) {
+            return LevelInfo{
+            price,std::accumulate(orders.begin(), orders.end(), (Quantity)0,
+                [](std::size_t runningSum, const Orderpointer& order)
+                    { return runningSum + order->GetRemainingQuantity(); })};
+        };
+
+    }
 };
 
 int main() {
