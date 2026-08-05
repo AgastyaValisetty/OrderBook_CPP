@@ -1,0 +1,8 @@
+[
+{
+  "directory": "D:/Work/OrderBookCPP/build",
+  "command": "C:\\MinGW\\bin\\g++.exe   -g -std=gnu++1z -o CMakeFiles\\OrderBookCPP.dir\\main.cpp.obj -c D:\\Work\\OrderBookCPP\\main.cpp",
+  "file": "D:/Work/OrderBookCPP/main.cpp",
+  "output": "CMakeFiles/OrderBookCPP.dir/main.cpp.obj"
+}
+]

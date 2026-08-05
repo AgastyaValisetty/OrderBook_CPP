@@ -210,6 +210,23 @@ private:
             }
 
         }
+        if (!bids_.empty()) {
+            auto& [_, bids] = *bids_.begin();
+            auto& order = bids.front();
+            if (order->GetOrderType() == OrderType::FillAndKill) CancelOrder(order->GetOrderId());
+        }
+        if (!asks_.empty()) {
+            auto& [_, asks] = *asks_.begin();
+            auto& order = bids.front();
+            if (order->GetorderType() == OrderType::FillAndKill) CancelOrder(order->GetOrderId());
+        }
+        return trades;
+    }
+public:
+    Trades AddOrder(OrderPointer order) {
+        if (orders_.contains(order->GetOrderId())) return { };
+        if (order->GetOrderType() == OrderType::FillAndKill && !CanMatch(Order->GetSide(), order->GetPrice())) return { };
+        
     }
 
 };
