@@ -217,16 +217,31 @@ private:
         }
         if (!asks_.empty()) {
             auto& [_, asks] = *asks_.begin();
-            auto& order = bids.front();
-            if (order->GetorderType() == OrderType::FillAndKill) CancelOrder(order->GetOrderId());
+            auto& order = asks.front();
+            if (order->GetOrderType() == OrderType::FillAndKill) CancelOrder(order->GetOrderId());
         }
         return trades;
     }
 public:
     Trades AddOrder(OrderPointer order) {
         if (orders_.contains(order->GetOrderId())) return { };
-        if (order->GetOrderType() == OrderType::FillAndKill && !CanMatch(Order->GetSide(), order->GetPrice())) return { };
-        
+        if (order->GetOrderType() == OrderType::FillAndKill && !CanMatch(order->GetSide(), order->GetPrice())) return { };
+
+        OrderPointers::iterator iterator;
+
+        if (order->GetSide() == Side::Buy) {
+            auto& orders = bids_[order->GetPrice()];
+            orders.push_back(order);
+            iterator = std::next(orders.begin(), orders.size() - 1);
+        }
+        else {
+            auto& orders = asks_[order->GetPrice()];
+            orders.push_back(order);
+            iterator = std::next(orders.begin(), orders.size() - 1);
+        }
+
+        orders_.insert({order->GetOrderId(), OrderEntry{order, iterator}});
+        return MatchOrders();
     }
 
 };
