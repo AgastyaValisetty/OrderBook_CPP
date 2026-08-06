@@ -9,4 +9,7 @@ add_executable(OrderBookCPP test.cpp
         Orderbook.h
         Usings.h
         Order.h
+        OrderType.h
+        Side.h
+        Constants.h
 )
