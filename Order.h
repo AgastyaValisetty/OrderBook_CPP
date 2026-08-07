@@ -56,4 +56,4 @@ private:
 };
 
 using OrderPointer = std::shared_ptr<Order>;
-using OrderPointers = std::shared_ptr<OrderPointer>;
+using OrderPointers = std::list<OrderPointer>;
