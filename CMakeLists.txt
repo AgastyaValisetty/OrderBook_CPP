@@ -12,4 +12,7 @@ add_executable(OrderBookCPP test.cpp
         OrderType.h
         Side.h
         Constants.h
+        OrderModify.h
+        OrderbookLevelInfos.h
+        LevelInfo.h
 )
