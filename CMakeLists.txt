@@ -3,7 +3,7 @@ project(OrderBookCPP)
 
 set(CMAKE_CXX_STANDARD 26)
 
-add_executable(OrderBookCPP test.cpp
+add_executable(OrderBookCPP
         main.cpp
         Orderbook.cpp
         Orderbook.h

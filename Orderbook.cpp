@@ -41,7 +41,7 @@ void Orderbook::PruneGoodForDayOrders()
 
 			for (const auto& [_, entry] : orders_)
 			{
-				const auto& [order, _] = entry;
+				const auto& [order, location] = entry;
 
 				if (order->GetOrderType() != OrderType::GoodForDay)
 					continue;
@@ -344,7 +344,7 @@ Trades Orderbook::ModifyOrder(OrderModify order)
 	}
 
 	CancelOrder(order.GetOrderId());
-	return AddOrder(order.ToOrderPointer(orderType));
+	return AddOrder(order.GetOrderPointer(orderType));
 }
 
 std::size_t Orderbook::Size() const
