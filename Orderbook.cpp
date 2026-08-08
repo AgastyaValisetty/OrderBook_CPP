@@ -229,17 +229,32 @@ Trades Orderbook::MatchOrders()
 			OnOrderMatched(ask->GetPrice(), quantity, ask->IsFilled());
 		}
 
-        if (bids.empty())
-        {
-            bids_.erase(bidPrice);
-            data_.erase(bidPrice);
-        }
+		const bool bidsEmpty = bids.empty();
+		const bool asksEmpty = asks.empty();
 
-        if (asks.empty())
-        {
-            asks_.erase(askPrice);
-            data_.erase(askPrice);
-        }
+		if (bidsEmpty)
+			bids_.erase(bidPrice);
+
+		if (asksEmpty)
+			asks_.erase(askPrice);
+
+		// data_ aggregates both sides at a price, so only drop the level
+		// aggregate once the price has left both books. When the crossed
+		// prices are equal (bidPrice == askPrice), a side that still rests
+		// (e.g. an unfilled FAK remainder) must keep its entry, otherwise
+		// UpdateLevelData would later re-create it with a negative count.
+		if (bidPrice == askPrice)
+		{
+			if (bidsEmpty && asksEmpty)
+				data_.erase(bidPrice);
+		}
+		else
+		{
+			if (bidsEmpty)
+				data_.erase(bidPrice);
+			if (asksEmpty)
+				data_.erase(askPrice);
+		}
 	}
 
 	if (!bids_.empty())
@@ -247,7 +262,7 @@ Trades Orderbook::MatchOrders()
 		auto& [_, bids] = *bids_.begin();
 		auto& order = bids.front();
 		if (order->GetOrderType() == OrderType::FillAndKill)
-			CancelOrder(order->GetOrderId());
+			CancelOrderInternal(order->GetOrderId());
 	}
 
 	if (!asks_.empty())
@@ -255,7 +270,7 @@ Trades Orderbook::MatchOrders()
 		auto& [_, asks] = *asks_.begin();
 		auto& order = asks.front();
 		if (order->GetOrderType() == OrderType::FillAndKill)
-			CancelOrder(order->GetOrderId());
+			CancelOrderInternal(order->GetOrderId());
 	}
 
 	return trades;

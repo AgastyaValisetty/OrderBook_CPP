@@ -127,5 +127,21 @@ int main()
 
     PrintBook(orderbook);
 
+    //------------------------
+    // SELL 100 @100 (FillAndKill)
+    // should match partially, remainder killed
+    //------------------------
+
+    PrintTrades(orderbook.AddOrder(
+        std::make_shared<Order>(
+            OrderType::FillAndKill,
+            id++,
+            Side::Sell,
+            100,
+            100
+        )));
+
+    PrintBook(orderbook);
+
     return 0;
 }

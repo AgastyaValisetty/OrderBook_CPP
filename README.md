@@ -312,6 +312,7 @@ struct Constants {
 2. **BUY 50 @ 99** — rests below the existing 100 bid.
 3. **SELL 70 @ 101** — rests on the ask side (best bid 100 < ask 101, no cross).
 4. **SELL 80 @ 100** — *crosses immediately*: the best bid (100) is now ≥ the best ask (100). The sell matches the resting 100 @ 100 bid for the minimum quantity (80), fully filling the sell and leaving 20 on the bid.
+5. **SELL 100 @ 100 (FillAndKill)** — *crosses immediately* against the remaining 20 @ 100 bid and fills 20. The unfilled remainder (80) is then **killed** rather than allowed to rest — demonstrating Fill-and-Kill semantics.
 
 ### Expected output
 
@@ -367,9 +368,26 @@ BIDS
 100  Qty: 20
 99  Qty: 50
 ================================
+
+
+Trades Executed
+=========================
+BUY Order 1 <--> SELL Order 5 | Price = 100 | Qty = 20
+
+
+========== ORDER BOOK ==========
+
+ASKS
+101  Qty: 70
+
+BIDS
+99  Qty: 50
+================================
 ```
 
 `PrintTrades` reports the **resting order's** price for each trade — matching at the resting price is the conventional continuous-auction behaviour. `PrintBook` prints the depth snapshot returned by `GetOrderInfos()`.
+
+In step 5 the aggressive FAK sell rests momentarily at the touch with its unfilled 80-lot remainder, which `MatchOrders` then kills — so the sell order never appears in the final depth snapshot (only its 20-lot fill does, as the trade above).
 
 ---
 
@@ -385,7 +403,7 @@ BIDS
 
 ## Known issues & limitations
 
-- **Potential deadlock for partially-filled `FillAndKill` orders.** `MatchOrders()` may invoke `CancelOrder()` to kill a leftover FAK order at the top of the book, but `MatchOrders()` runs while `AddOrder()` already holds the non-recursive `ordersMutex_`, and `CancelOrder()` tries to lock it again. This only triggers when a FAK order is added, matches partially, and still rests at the touch — the GTC-only demo in `main.cpp` never exercises it. The fix is to route the internal cancellation through `CancelOrderInternal()` (the non-locking path) from within `MatchOrders()`.
+- **FAK partial-fill handling (deadlock — fixed).** A `FillAndKill` order that crosses partially leaves an unfilled remainder that must be killed immediately. Earlier code invoked the locking `CancelOrder()` from inside `MatchOrders()` — while `AddOrder()` already held the non-recursive `ordersMutex_` — which deadlocked on any partially-filled FAK order. The internal cancellation now goes through the non-locking `CancelOrderInternal()`, which is safe because `MatchOrders()` runs with the mutex already held. The `main.cpp` demo exercises this path in step 5. Relatedly, per-level `data_` aggregates are now dropped only once a crossed price leaves **both** sides of the book, so a still-resting FAK remainder is not double-counted into a negative level.
 - **FOK / FAK with the empty side.** If the opposite book is empty, these orders are rejected outright, which is correct behaviour.
 - **Single-asset, no persistence, no network/FIX layer.** The engine covers the in-memory matching core only; execution reporting, risk checks, and an order gateway are out of scope.
 - **16:00 local-time cutoff** for `GoodForDay` orders uses the system local timezone and is not configurable.
