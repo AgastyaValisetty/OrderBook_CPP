@@ -411,5 +411,4 @@ In step 5 the aggressive FAK sell rests momentarily at the touch with its unfill
 ---
 
 ## License
-
-*Add your license here* (MIT, Apache-2.0, GPL-3.0, etc.) — the repository does not currently ship a `LICENSE` file.
+(MIT, Apache-2.0, GPL-3.0, etc.) — the repository does not currently ship a `LICENSE` file.
