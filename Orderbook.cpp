@@ -238,23 +238,14 @@ Trades Orderbook::MatchOrders()
 		if (asksEmpty)
 			asks_.erase(askPrice);
 
-		// data_ aggregates both sides at a price, so only drop the level
-		// aggregate once the price has left both books. When the crossed
-		// prices are equal (bidPrice == askPrice), a side that still rests
-		// (e.g. an unfilled FAK remainder) must keep its entry, otherwise
-		// UpdateLevelData would later re-create it with a negative count.
-		if (bidPrice == askPrice)
-		{
-			if (bidsEmpty && asksEmpty)
-				data_.erase(bidPrice);
-		}
-		else
-		{
-			if (bidsEmpty)
-				data_.erase(bidPrice);
-			if (asksEmpty)
-				data_.erase(askPrice);
-		}
+		// Do NOT erase data_ here. data_ aggregates both sides at a price,
+		// and a price that has just been emptied on one side may still be
+		// occupied on the other (e.g. an aggressive bid fully fills while a
+		// deeper resting ask sits at the same price; or an unfilled FAK
+		// remainder rests at the crossed price). Erasing the aggregate here
+		// would leave the resting side uncounted, and UpdateLevelData would
+		// later re-create the entry with a negative count. UpdateLevelData
+		// already drops the entry on its own when count_ reaches 0.
 	}
 
 	if (!bids_.empty())
@@ -288,7 +279,12 @@ Orderbook::~Orderbook()
 Trades Orderbook::AddOrder(OrderPointer order)
 {
 	std::scoped_lock ordersLock{ ordersMutex_ };
+	return AddOrderInternal(std::move(order));
+}
 
+// Callers must hold ordersMutex_.
+Trades Orderbook::AddOrderInternal(OrderPointer order)
+{
 	if (orders_.contains(order->GetOrderId()))
 		return { };
 
@@ -346,20 +342,20 @@ void Orderbook::CancelOrder(OrderId orderId)
 
 Trades Orderbook::ModifyOrder(OrderModify order)
 {
-	OrderType orderType;
+	std::scoped_lock ordersLock{ ordersMutex_ };
 
-	{
-		std::scoped_lock ordersLock{ ordersMutex_ };
+	if (!orders_.contains(order.GetOrderId()))
+		return { };
 
-		if (!orders_.contains(order.GetOrderId()))
-			return { };
+	const auto& [existingOrder, _] = orders_.at(order.GetOrderId());
+	const OrderType orderType = existingOrder->GetOrderType();
 
-		const auto& [existingOrder, _] = orders_.at(order.GetOrderId());
-		orderType = existingOrder->GetOrderType();
-	}
-
-	CancelOrder(order.GetOrderId());
-	return AddOrder(order.GetOrderPointer(orderType));
+	// Cancel-then-re-add under a single lock hold. The earlier version
+	// released the mutex after reading orderType and re-acquired it inside
+	// CancelOrder/AddOrder, leaving a window in which a concurrent thread
+	// could cancel or otherwise mutate the order (TOCTOU).
+	CancelOrderInternal(order.GetOrderId());
+	return AddOrderInternal(order.GetOrderPointer(orderType));
 }
 
 std::size_t Orderbook::Size() const

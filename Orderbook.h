@@ -58,6 +58,7 @@ private:
     bool CanFullyFill(Side side, Price price, Quantity quantity) const;
     bool CanMatch(Side side, Price price) const;
     Trades MatchOrders();
+    Trades AddOrderInternal(OrderPointer order);
 
 public:
 
