@@ -366,6 +366,11 @@ std::size_t Orderbook::Size() const
 
 OrderbookLevelInfos Orderbook::GetOrderInfos() const
 {
+	// Must hold the lock: this reads bids_/asks_/orders_ while every
+	// mutating entry point (and the prune thread) mutates them under the
+	// same mutex. Reading them unlocked races with those threads.
+	std::scoped_lock ordersLock{ ordersMutex_ };
+
 	LevelInfos bidInfos, askInfos;
 	bidInfos.reserve(orders_.size());
 	askInfos.reserve(orders_.size());
